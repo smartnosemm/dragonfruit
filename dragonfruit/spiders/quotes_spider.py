@@ -1,4 +1,7 @@
 import scrapy
+from time import sleep
+import os
+import datetime
 
 class QuotesSpider(scrapy.Spider):
     name = "quotes"
@@ -15,8 +18,17 @@ class QuotesSpider(scrapy.Spider):
 
 
     def after_login(self, response):
+
+        # logging response information
+        log_dir = os.path.dirname(os.path.abspath(__file__)) + '\\response_log'
+        currentTime = str(datetime.datetime.now())[:19]
+        logfile = ''.join(c for c in currentTime if c.isalnum()) + '_res.txt'
+        responseBodyString = response.body.decode()
+        with open(os.path.join(log_dir, logfile), 'w') as f:
+            f.write(responseBodyString)
+
         # check login succeed before going on
-        if "authentication failed" in response.body.decode():
+        if "authentication failed" in responseBodyString:
             self.logger.error("Login failed")
             return
         else:
@@ -31,9 +43,12 @@ class QuotesSpider(scrapy.Spider):
             self.parse_price(prices, productnames)
 
         for category_url in response.xpath('//div[@class="col-xs-6 col-md-3"]').css('a::attr(href)').extract():
+            sleep(1)
             yield scrapy.Request(category_url, callback=self.parse_category)
 
     def parse_price(self, prices, productnames):
         for i in range(len(prices)):
-            if prices[i][-2:] == '97':
+            # '.97':discount from store, '.00':clearance
+            # '.49' or '.79' discount from brand
+            if prices[i][-3:]=='.97' or prices[i][-3:]=='.00':
                 print(productnames[i], ':', prices[i])
