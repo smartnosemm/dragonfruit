@@ -2,6 +2,7 @@ import scrapy
 from time import sleep
 import os
 import datetime
+import time
 import boto3
 import json
 
@@ -10,7 +11,22 @@ class QuotesSpider(scrapy.Spider):
 
     # <li class="category-level-1">
     start_urls = [
+        'https://www.costco.com/electronics.html',
+        'https://www.costco.com/computers.html',
+        'https://www.costco.com/appliances.html',
+        'https://www.costco.com/furniture.html',
+        'https://www.costco.com/auto-tires.html',
+        'https://www.costco.com/holiday-gifts.html',
+        'https://www.costco.com/jewelry.html',
+        'https://www.costco.com/patio-lawn-garden.html',
+        'https://www.costco.com/hardware.html',
+        'https://www.costco.com/home-and-decor.html',
+        'https://www.costco.com/office-products.html',
+        'https://www.costco.com/clothing.html',
         'https://www.costco.com/health-beauty.html',
+        'https://www.costco.com/baby-kids.html',
+        'https://www.costco.com/grocery-household.html',
+        'https://www.costco.com/sports-fitness.html'
     ]
 
     # Connect to Amazon Dynamodb
@@ -48,8 +64,18 @@ class QuotesSpider(scrapy.Spider):
         if len(prices):
             self.parse_price(prices, products, category)
 
-        for category_url in response.xpath('//div[@class="col-xs-6 col-md-3"]').css('a::attr(href)').extract():
+        urls = response.xpath('//div[@class="col-xs-6 col-md-3"]').css('a::attr(href)').extract()
+        if not urls:
+            urls = response.xpath('//div[@class="col-xs-6 col-md-3 feature-tile"]').css('a::attr(href)').extract()
+        if not urls:
+            urls = response.xpath('//div[@class="col-xs-6 col-md-3 col-xl-3"]').css('a::attr(href)').extract()
+        for category_url in urls:
             sleep(1)
+            # If url is relative url, add 'https://www.costco.com'
+            if category_url[:5] != 'https':
+                if category_url[:1] != '/':
+                    category_url = '/' + category_url
+                category_url = 'https://www.costco.com' + category_url
             yield scrapy.Request(category_url, callback=self.parse_category)
 
     def parse_price(self, prices, products, category):
@@ -63,6 +89,11 @@ class QuotesSpider(scrapy.Spider):
                 img_link = products[i].css('img').xpath('@data-src').extract_first()
                 if img_link is None:
                     img_link = products[i].css('img').xpath('@src').extract_first()
+                # epoch time
+                current_time = str(datetime.datetime.now())[:19]
+                expired_time = str(datetime.datetime.now() + datetime.timedelta(days=1))[:19]
+                creation_time = int(time.mktime(time.strptime(current_time,'%Y-%m-%d %H:%M:%S')))
+                expiration_time = int(time.mktime(time.strptime(expired_time,'%Y-%m-%d %H:%M:%S')))
                 # Write a new item to Dynamodb
                 response_db = self.productTable.put_item(
                     Item={
@@ -71,6 +102,8 @@ class QuotesSpider(scrapy.Spider):
                         'ProductPrice': prices[i],
                         'ProductLink': product_link,
                         'ImgLink': img_link,
-                        'Category': category
+                        'Category': category,
+                        'CreationTime': creation_time,
+                        'ExpirationTime(TTL)': expiration_time
                     }
                 )
