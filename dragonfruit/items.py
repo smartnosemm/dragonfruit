@@ -7,8 +7,12 @@
 
 import scrapy
 
-
-class DragonfruitItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class Product(scrapy.Item):
+    ProductID = scrapy.Field()
+    ProductName = scrapy.Field()
+    ProductPrice = scrapy.Field()
+    ProductLink = scrapy.Field()
+    ImgLink = scrapy.Field()
+    Category = scrapy.Field()
+    CreationTime = scrapy.Field()
+    ExpirationTime = scrapy.Field()

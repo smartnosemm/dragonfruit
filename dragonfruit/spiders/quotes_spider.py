@@ -13,7 +13,22 @@ class QuotesSpider(scrapy.Spider):
 
     # <li class="category-level-1">
     start_urls = [
-        'https://www.costco.com/skin-care.html'
+        'https://www.costco.com/electronics.html',
+        'https://www.costco.com/computers.html',
+        'https://www.costco.com/appliances.html',
+        'https://www.costco.com/furniture.html',
+        'https://www.costco.com/auto-tires.html',
+        'https://www.costco.com/holiday-gifts.html',
+        'https://www.costco.com/jewelry.html',
+        'https://www.costco.com/patio-lawn-garden.html',
+        'https://www.costco.com/hardware.html',
+        'https://www.costco.com/home-and-decor.html',
+        'https://www.costco.com/office-products.html',
+        'https://www.costco.com/clothing.html',
+        'https://www.costco.com/health-beauty.html',
+        'https://www.costco.com/baby-kids.html',
+        'https://www.costco.com/grocery-household.html',
+        'https://www.costco.com/sports-fitness.html'
     ]
 
     rules = (
@@ -80,22 +95,23 @@ class QuotesSpider(scrapy.Spider):
                     item['ExpirationTime'] = expiration_time
                     yield item
 
-        #urls = response.xpath('//div[@class="col-xs-6 col-md-3"]').css('a::attr(href)').extract()
-        #page_urls = response.xpath('//li[@class="page "]').css('a').xpath('@href').extract()
-        '''
+        urls = response.xpath('//div[@class="col-xs-6 col-md-3"]').css('a::attr(href)').extract()
+        page_urls = response.xpath('//li[@class="page "]').css('a').xpath('@href').extract()
         if not urls:
             urls = response.xpath('//div[@class="col-xs-6 col-md-3 feature-tile"]').css('a::attr(href)').extract()
         if not urls:
             urls = response.xpath('//div[@class="col-xs-6 col-md-3 col-xl-3"]').css('a::attr(href)').extract()
-        
-        urls = urls + page_urls
+
+        urls = page_urls + urls
         for category_url in urls:
             sleep(1)
+            category_url = response.urljoin(category_url)
+            '''
             # If url is relative url, add 'https://www.costco.com'
             if category_url[:5] != 'https':
                 if category_url[:1] != '/':
                     category_url = '/' + category_url
-                category_url = 'https://www.costco.com' + category_url
+                    category_url = 'https://www.costco.com' + category_url
+            '''
             yield scrapy.Request(category_url, callback=self.parse_category)
-        '''
 
